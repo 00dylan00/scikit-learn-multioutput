@@ -139,11 +139,12 @@ class _MultiOutputEstimator(MetaEstimatorMixin, BaseEstimator, metaclass=ABCMeta
                 "y must have at least two dimensions for "
                 "multi-output regression but has only one."
             )
-
-        if sample_weight is not None and not has_fit_parameter(
-            self.estimator, "sample_weight"
-        ):
-            raise ValueError("Underlying estimator does not support sample weights.")
+        
+        # Change: we do not want it to check if `sample_weight` is a 1D vector
+        #if sample_weight is not None and not has_fit_parameter(
+        #    self.estimator, "sample_weight"
+        #):
+        #    raise ValueError("Underlying estimator does not support sample weights.")
 
         self.estimators_ = Parallel(n_jobs=self.n_jobs)(
             delayed(_partial_fit_estimator)(
@@ -151,7 +152,9 @@ class _MultiOutputEstimator(MetaEstimatorMixin, BaseEstimator, metaclass=ABCMeta
                 X,
                 y[:, i],
                 classes[i] if classes is not None else None,
-                sample_weight,
+                # Change: we want it to take the corresponding column for sample weight
+                #sample_weight,
+                sample_weight[:,i],
                 first_time,
             )
             for i in range(y.shape[1])
@@ -207,16 +210,23 @@ class _MultiOutputEstimator(MetaEstimatorMixin, BaseEstimator, metaclass=ABCMeta
                 "multi-output regression but has only one."
             )
 
-        if sample_weight is not None and not has_fit_parameter(
-            self.estimator, "sample_weight"
-        ):
-            raise ValueError("Underlying estimator does not support sample weights.")
+        # Change: we do not want it to check if `sample_weight` is a 1D vector
+        #if sample_weight is not None and not has_fit_parameter(
+        #    self.estimator, "sample_weight"
+        #):
+        #    raise ValueError("Underlying estimator does not support sample weights.")
 
         fit_params_validated = _check_fit_params(X, fit_params)
 
         self.estimators_ = Parallel(n_jobs=self.n_jobs)(
             delayed(_fit_estimator)(
-                self.estimator, X, y[:, i], sample_weight, **fit_params_validated
+                self.estimator, 
+                X, 
+                y[:, i], 
+                # Change: we want it to take the corresponding column for `sample_weight`
+                #sample_weight, 
+                sample_weight[:,i], 
+                **fit_params_validated
             )
             for i in range(y.shape[1])
         )
